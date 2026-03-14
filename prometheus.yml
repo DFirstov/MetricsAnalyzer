@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s # Часто для теста, чтобы быстрее видеть тренды
+
+scrape_configs:
+  - job_name: 'dotnet-service'
+    static_configs:
+      - targets: ['victim-service:8080'] # Имя сервиса из docker-compose
