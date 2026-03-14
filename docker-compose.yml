@@ -34,3 +34,11 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
+
+  victim-service:
+    build: ./VictimService
+    container_name: victim-service
+    mem_limit: 256m
+    cpus: 0.5
+    ports:
+      - "8080:8080"
