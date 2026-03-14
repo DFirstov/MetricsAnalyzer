@@ -4,4 +4,5 @@
     <File Path="docker-compose.yml" />
     <File Path="prometheus.yml" />
   </Folder>
+  <Project Path="VictimService/VictimService.csproj" />
 </Solution>
