@@ -1,11 +1,13 @@
 using System.Globalization;
 using System.Text.Json;
+using PredictorService.Analyzers;
 
 namespace PredictorService;
 
 public sealed class Worker : BackgroundService
 {
 	private const int MemoryLimitBytes = 256 * 1024 * 1024;
+	private const int CpuLimit = 50;
 
 	private readonly HttpClient _client = new() {BaseAddress = new Uri("http://localhost:9090")};
 
@@ -13,51 +15,32 @@ public sealed class Worker : BackgroundService
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			await AnalyzeMemoryTrend();
+			await ExtrapolateMemory();
+			await ExtrapolateCpu();
 
 			await Task.Delay(10_000, stoppingToken);
 		}
 	}
 
-	private async Task AnalyzeMemoryTrend()
+	private async Task ExtrapolateMemory()
 	{
 		var data = await GetPrometheusData("system_runtime_dotnet_process_memory_working_set[2m]");
-		if (data.Length < 5) return;
+		double secondsToOom = ExtrapolationAnalyzer.CalculateSecondsToLimit(data, MemoryLimitBytes);
 
-		int n = data.Length;
-
-		double
-			sumX = 0,
-			sumY = 0,
-			sumXY = 0,
-			sumX2 = 0;
-
-		long startTime = data[0].Timestamp;
-
-		foreach (var p in data)
+		if (secondsToOom < 60)
 		{
-			double x = p.Timestamp - startTime;
-			double y = p.Value;
-
-			sumX += x;
-			sumY += y;
-			sumXY += x * y;
-			sumX2 += x * x;
+			Console.WriteLine($"OOM in {secondsToOom:F0}s");
 		}
+	}
 
-		double denominator = n * sumX2 - sumX * sumX;
-		if (Math.Abs(denominator) < 0.0001) return;
+	private async Task ExtrapolateCpu()
+	{
+		var data = await GetPrometheusData("system_runtime_cpu_usage[2m]");
+		double secondsToThrottling = ExtrapolationAnalyzer.CalculateSecondsToLimit(data, CpuLimit);
 
-		double slope = (n * sumXY - sumX * sumY) / denominator;
-
-		if (slope > 0)
+		if (secondsToThrottling < 60)
 		{
-			double remainingMemory = MemoryLimitBytes - data[^1].Value;
-			double secondsToOom = remainingMemory / slope;
-
-			if (secondsToOom < 60)
-				Console.WriteLine(
-					$"[CRITICAL] OOM Prediction: collapse in {secondsToOom:F0}s! Slope: {slope / 1024 / 1024:F2} MB/s");
+			Console.WriteLine($"CPU throttling in {secondsToThrottling:F0}s");
 		}
 	}
 
