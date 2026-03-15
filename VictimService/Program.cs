@@ -131,7 +131,8 @@ app.MapPost("/chaos/cpu/oscillation", (int durationSeconds = 120) =>
 });
 
 
-const double errorChance = 0.005;
+var errorChance = 0.005;
+var additionalDelay = 0;
 
 app.MapGet("/api/data", async () =>
 {
@@ -142,9 +143,12 @@ app.MapGet("/api/data", async () =>
 	}
 
 	// Имитируем какие-то расчёты
-	double result = Enumerable
+	var result = Enumerable
 		.Range(0, 1_000_000)
 		.Sum(_ => Math.Sqrt(Random.Shared.NextDouble()));
+	
+	// Добавляем задержку, если она задана
+	await Task.Delay(additionalDelay);
 
 	// Возвращаем успешный результат
 	return Results.Ok(new
@@ -153,6 +157,10 @@ app.MapGet("/api/data", async () =>
 		Status = "Success"
 	});
 });
+
+app.MapPut("/chaos/api/data/error-chance", (double newErrorChance = 0.005) => errorChance = newErrorChance);
+
+app.MapPut("/chaos/api/data/additional-delay", (int newAdditionalDelay = 0) => additionalDelay = newAdditionalDelay);
 
 
 app.MapMetrics();

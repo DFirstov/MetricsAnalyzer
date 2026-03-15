@@ -36,11 +36,11 @@ public sealed class Worker : BackgroundService
 
 		if (prediction.IsAnomaly)
 		{
-			Console.WriteLine($"Anomaly detected: {prediction.Score}");
+			Console.WriteLine($"{DateTime.Now:G} Anomaly detected: {prediction.Score}");
 		}
 		else
 		{
-			Console.WriteLine("No anomalies detected");
+			Console.WriteLine($"{DateTime.Now:G} No anomalies detected");
 		}
 	}
 
