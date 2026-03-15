@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using Prometheus;
@@ -62,20 +63,73 @@ app.MapPost("/chaos/memory-leak/start", ([FromServices] ILogger<Program> logger)
 app.MapPost("/chaos/memory-leak/stop", void () => isMemoryLeak = false);
 
 
-app.MapPost("/chaos/cpu-spike", (int durationSeconds = 30) =>
+app.MapPost("/chaos/cpu/linear", (int durationSeconds = 120) =>
 {
-	for (var i = 0; i < Environment.ProcessorCount; i++)
+	Task.Run(async () =>
 	{
-		Task.Run(() =>
-		{
-			var end = DateTime.UtcNow.AddSeconds(durationSeconds);
-			while (DateTime.UtcNow < end)
-			{
-			}
-		});
-	}
+		var duration = TimeSpan.FromSeconds(durationSeconds);
 
-	return Results.Ok($"CPU load started on {Environment.ProcessorCount} cores");
+		using CancellationTokenSource cancellationTokenSource = new(duration);
+		var stopwatch = Stopwatch.StartNew();
+
+		while (!cancellationTokenSource.Token.IsCancellationRequested)
+		{
+			double progress = stopwatch.Elapsed.TotalMilliseconds / duration.TotalMilliseconds;
+			double intensity = Math.Min(progress, 1.0);
+
+			var innerStopwatch = Stopwatch.StartNew();
+			while (innerStopwatch.ElapsedMilliseconds < intensity * 100)
+			{
+				_ = Math.Sqrt(Random.Shared.NextDouble());
+			}
+
+			await Task.Delay((int) ((1.0 - intensity) * 100));
+		}
+	});
+});
+
+app.MapPost("/chaos/cpu/spike", (int durationSeconds = 120) =>
+{
+	Task.Run(() =>
+	{
+		var duration = TimeSpan.FromSeconds(durationSeconds);
+		using CancellationTokenSource cancellationTokenSource = new(duration);
+
+		while (!cancellationTokenSource.Token.IsCancellationRequested)
+		{
+			_ = Math.Sqrt(Random.Shared.NextDouble());
+		}
+	});
+});
+
+app.MapPost("/chaos/cpu/oscillation", (int durationSeconds = 120) =>
+{
+	Task.Run(async () =>
+	{
+		var duration = TimeSpan.FromSeconds(durationSeconds);
+		using CancellationTokenSource cancellationTokenSource = new(duration);
+
+		bool spike = true;
+
+		while (!cancellationTokenSource.Token.IsCancellationRequested)
+		{
+			var periodEnd = DateTime.UtcNow.AddSeconds(5 * Random.Shared.NextDouble());
+
+			while (periodEnd > DateTime.UtcNow && !cancellationTokenSource.Token.IsCancellationRequested)
+			{
+				if (spike)
+				{
+					_ = Math.Sqrt(Random.Shared.NextDouble());
+				}
+				else
+				{
+					await Task.Delay(50);
+				}
+			}
+
+			spike = !spike;
+		}
+	});
 });
 
 
