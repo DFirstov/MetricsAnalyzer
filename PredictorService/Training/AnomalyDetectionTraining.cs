@@ -1,11 +1,14 @@
 ﻿using Microsoft.ML;
 using PredictorService.Clients;
 using PredictorService.Models;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace PredictorService.Training;
 
 internal static class AnomalyDetectionTraining
 {
+	private const bool ReuseLastTrainingData = true;
+	
 	public static async Task<PredictionEngine<ModelInput, ModelPrediction>> CreatePredictionEngine()
 	{
 		var data = await FetchTrainingData();
@@ -39,6 +42,26 @@ internal static class AnomalyDetectionTraining
 
 	private static async Task<ModelInput[]> FetchTrainingData()
 	{
+		const string? trainingDataDirectory = "training-data";
+		
+		if (ReuseLastTrainingData && Directory.Exists(trainingDataDirectory))
+		{
+			var oldTrainingData = Directory
+				.EnumerateFiles(trainingDataDirectory)
+				.Order()
+				.LastOrDefault();
+
+			if (oldTrainingData != null)
+			{
+				await using var inputFile = File.OpenRead(oldTrainingData);
+				var result = await JsonSerializer.DeserializeAsync<ModelInput[]>(inputFile);
+				if (result != null)
+				{
+					return result;
+				}
+			}
+		}
+		
 		var rpsTask = PrometheusClient.GetPrometheusHistory("rate(http_requests_received_total[1m])", 15);
 		var errTask = PrometheusClient.GetPrometheusHistory("rate(http_requests_received_total{code=~\"5..\"}[1m]) / rate(http_requests_received_total[1m])", 15);
 		var latTask = PrometheusClient.GetPrometheusHistory("rate(http_request_duration_seconds_sum[1m]) / rate(http_requests_received_total[1m])", 15);
@@ -59,6 +82,10 @@ internal static class AnomalyDetectionTraining
 			if (float.IsNaN(item.Latency)) item.Latency = 0;
 			if (float.IsNaN(item.ErrorRate)) item.ErrorRate = 0;
 		}
+
+		Directory.CreateDirectory(trainingDataDirectory);
+		await using var outputFile = File.OpenWrite($"{trainingDataDirectory}/training-data-{DateTime.Now:yyyy-MM-dd-hh-mm-ss}.json");
+		await JsonSerializer.SerializeAsync(outputFile, trainingData);
 
 		return trainingData;
 	}
