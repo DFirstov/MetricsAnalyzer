@@ -70,13 +70,22 @@ internal static class AnomalyDetectionTraining
 		var trainingDataView = mlContext.Data.LoadFromEnumerable(data);
 
 		var pipeline = mlContext.Transforms
-			.Concatenate(
+			.ReplaceMissingValues(
+			[
+				new InputOutputColumnPair(nameof(ModelInput.Rps)),
+				new InputOutputColumnPair(nameof(ModelInput.ErrorRate)),
+				new InputOutputColumnPair(nameof(ModelInput.Latency)),
+				new InputOutputColumnPair(nameof(ModelInput.Cpu)),
+				new InputOutputColumnPair(nameof(ModelInput.Memory))
+			])
+			.Append(mlContext.Transforms.Concatenate(
 				"Features",
 				nameof(ModelInput.Rps),
 				nameof(ModelInput.ErrorRate),
 				nameof(ModelInput.Latency),
 				nameof(ModelInput.Cpu),
-				nameof(ModelInput.Memory))
+				nameof(ModelInput.Memory)))
+			.Append(mlContext.Transforms.NormalizeMinMax("Features"))
 			.Append(mlContext.AnomalyDetection.Trainers.RandomizedPca(
 				featureColumnName: "Features",
 				rank: 3));
