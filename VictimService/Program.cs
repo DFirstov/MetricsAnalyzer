@@ -133,49 +133,27 @@ app.MapPost("/chaos/cpu/oscillation", (int durationSeconds = 120) =>
 });
 
 
-ConcurrentQueue<DateTime> requestTimes = new();
+const double errorChance = 0.005;
 
-app.MapPost("/chaos/non-linear-latency", async () =>
+app.MapGet("/api/data", async () =>
 {
-	var now = DateTime.UtcNow;
-	requestTimes.Enqueue(now);
-
-	while (requestTimes.TryPeek(out var timestamp) && (now - timestamp).TotalSeconds >= 1)
+	// В небольшом проценте случаев имитируем ошибку
+	if (Random.Shared.NextDouble() < errorChance)
 	{
-		requestTimes.TryDequeue(out _);
+		return Results.Problem("Random internal error", statusCode: 500);
 	}
 
-	var currentRps = requestTimes.Count;
-	if (currentRps > 50)
+	// Имитируем какие-то расчёты
+	double result = Enumerable
+		.Range(0, 1_000_000)
+		.Sum(_ => Math.Sqrt(Random.Shared.NextDouble()));
+
+	// Возвращаем успешный результат
+	return Results.Ok(new
 	{
-		var extraMs = (int) Math.Pow(currentRps - 50, 1.5);
-		await Task.Delay(Random.Shared.Next(extraMs, extraMs + 200));
-	}
-
-	return Results.Ok($"Current RPS: {currentRps}");
-});
-
-
-const string dbConnectionString =
-	"Host=postgres;" +
-	"Database=metrics_test;" +
-	"Username=user;" +
-	"Password=password;" +
-	"Maximum Pool Size=5";
-
-app.MapPost("/chaos/dp-pool-exhaustion", () =>
-{
-	for (var i = 0; i < 6; i++)
-	{
-		Task.Run(async () =>
-		{
-			await using var connection = new NpgsqlConnection(dbConnectionString);
-			await connection.OpenAsync();
-			await Task.Delay(TimeSpan.FromMinutes(2));
-		});
-	}
-
-	return Results.Ok("6 DB connections opened (pool limit is 5)");
+		Value = result,
+		Status = "Success"
+	});
 });
 
 
