@@ -2,8 +2,11 @@
 
 namespace PredictorService.Models;
 
-public class ModelPrediction
+public sealed class ModelPrediction
 {
-	[VectorType(3)]
-	public required double[] Score { get; set; }
+	[ColumnName("Score")]
+	public float Score { get; set; }
+
+	[ColumnName("PredictedLabel")]
+	public bool IsAnomaly { get; set; }
 }

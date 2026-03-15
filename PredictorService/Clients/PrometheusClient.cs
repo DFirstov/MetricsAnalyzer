@@ -13,6 +13,18 @@ public static class PrometheusClient
 		return ParsePrometheusResponse(response);
 	}
 
+	public static async Task<MetricPoint[]> GetPrometheusHistory(string query, int minutesBack)
+	{
+		var end = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		var start = end - minutesBack * 60;
+		const string step = "15s";
+
+		var url = $"/api/v1/query_range?query={Uri.EscapeDataString(query)}&start={start}&end={end}&step={step}";
+
+		var response = await _client.GetStringAsync(url);
+		return ParsePrometheusResponse(response);
+	}
+
 	private static MetricPoint[] ParsePrometheusResponse(string json)
 	{
 		var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true};

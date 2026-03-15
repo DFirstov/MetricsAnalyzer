@@ -1,5 +1,8 @@
+using Microsoft.ML;
 using PredictorService.Analyzers;
 using PredictorService.Clients;
+using PredictorService.Models;
+using PredictorService.Training;
 
 namespace PredictorService;
 
@@ -10,15 +13,34 @@ public sealed class Worker : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		var predictionEngine = await AnomalyDetectionTraining.CreatePredictionEngine();
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			await ExtrapolateMemory();
-			await ExtrapolateCpu();
+			// await ExtrapolateMemory();
+			// await ExtrapolateCpu();
 
-			await ZScoreMemory();
-			await ZScoreCpu();
+			// await ZScoreMemory();
+			// await ZScoreCpu();
+
+			await DetectAnomalies(predictionEngine);
 
 			await Task.Delay(10_000, stoppingToken);
+		}
+	}
+
+	private static async Task DetectAnomalies(PredictionEngine<ModelInput, ModelPrediction> predictionEngine)
+	{
+		var data = await AnomalyDetectionTraining.GetCurrentPointFromPrometheus();
+		var prediction = predictionEngine.Predict(data);
+
+		if (prediction.IsAnomaly)
+		{
+			Console.WriteLine($"Anomaly detected: {prediction.Score}");
+		}
+		else
+		{
+			Console.WriteLine("No anomalies detected");
 		}
 	}
 
