@@ -3,6 +3,7 @@
     <File Path=".gitignore" />
     <File Path="docker-compose.yml" />
     <File Path="prometheus.yml" />
+    <File Path="readme.md" />
   </Folder>
   <Project Path="PredictorService/PredictorService.csproj" />
   <Project Path="TrafficSimulator/TrafficSimulator.csproj" />
