@@ -5,5 +5,5 @@ namespace PredictorService.Models;
 public class ModelPrediction
 {
 	[VectorType(3)]
-	public double[] Score { get; set; }
+	public required double[] Score { get; set; }
 }

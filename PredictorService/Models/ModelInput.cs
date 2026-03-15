@@ -1,4 +1,6 @@
-﻿namespace PredictorService.Models;
+﻿using PredictorService.Clients;
+
+namespace PredictorService.Models;
 
 public class ModelInput
 {

@@ -1,7 +1,5 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);

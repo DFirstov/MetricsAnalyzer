@@ -1,4 +1,6 @@
-﻿namespace PredictorService.Analyzers;
+﻿using PredictorService.Clients;
+
+namespace PredictorService.Analyzers;
 
 internal static class ExtrapolationAnalyzer
 {
