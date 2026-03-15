@@ -45,3 +45,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        
+  traffic-simulator:
+    build: ./TrafficSimulator
+    container_name: traffic-simulator
+    environment:
+      - VICTIM_URL=http://victim-service:8080
+    tty: true

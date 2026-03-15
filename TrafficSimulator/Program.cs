@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 
-HttpClient httpClient = new() {BaseAddress = new Uri("http://localhost:8080")};
+string victimUrl = Environment.GetEnvironmentVariable("VICTIM_URL") ?? "http://localhost:8080";
+var httpClient = new HttpClient { BaseAddress = new Uri(victimUrl) };
+
 double baseRps = 50;
 double amplitude = 40;
 int tick = 0;
