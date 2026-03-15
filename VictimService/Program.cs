@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using Prometheus;
 
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddLogging();
 
 var app = builder.Build();
 
@@ -19,14 +21,45 @@ app.MapGet("/", () => "Service is healthy");
 
 
 List<byte[]> memoryLeakContainer = [];
+bool isMemoryLeak;
 
-app.MapPost("/chaos/memory-leak", () =>
+app.MapPost("/chaos/memory-leak/start", ([FromServices] ILogger<Program> logger) =>
 {
-	var chunk = new byte[30 * 1024 * 1024];
-	Array.Fill(chunk, (byte) 1);
-	memoryLeakContainer.Add(chunk);
-	return Results.Ok($"Allocated 30MB. Total: {memoryLeakContainer.Count * 30}MB");
+	isMemoryLeak = true;
+	Task.Run(async () =>
+	{
+		while (isMemoryLeak)
+		{
+			bool clear = Random.Shared.NextDouble() < 0.2;
+			if (clear)
+			{
+				var indexOfBufferToRemove = Random.Shared.Next(0, memoryLeakContainer.Count);
+				memoryLeakContainer.RemoveAt(indexOfBufferToRemove);
+				GC.Collect();
+				var allocated = memoryLeakContainer.Sum(buffer => buffer.Length) / 1024 / 1024;
+				logger.LogInformation("Memory usage decreased. Allocated megabytes: {Allocated}", allocated);
+			}
+			else
+			{
+				var megabytes = 5 * Random.Shared.NextDouble();
+				var bytes = (int) (megabytes * 1024 * 1024);
+				var buffer = new byte[bytes];
+				Array.Fill(buffer, (byte) 1);
+				memoryLeakContainer.Add(buffer);
+				var allocated = memoryLeakContainer.Sum(b => b.Length) / 1024 / 1024;
+				logger.LogWarning("Memory usage increased. Allocated megabytes: {Allocated}", allocated);
+			}
+
+			await Task.Delay(TimeSpan.FromSeconds(1));
+		}
+
+		memoryLeakContainer.Clear();
+		GC.Collect();
+		logger.LogInformation("Memory leak stopped.");
+	});
 });
+
+app.MapPost("/chaos/memory-leak/stop", void () => isMemoryLeak = false);
 
 
 app.MapPost("/chaos/cpu-spike", (int durationSeconds = 30) =>
