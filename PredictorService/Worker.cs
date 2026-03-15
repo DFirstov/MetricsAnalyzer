@@ -18,6 +18,9 @@ public sealed class Worker : BackgroundService
 			await ExtrapolateMemory();
 			await ExtrapolateCpu();
 
+			await ZScoreMemory();
+			await ZScoreCpu();
+
 			await Task.Delay(10_000, stoppingToken);
 		}
 	}
@@ -29,7 +32,7 @@ public sealed class Worker : BackgroundService
 
 		if (secondsToOom < 60)
 		{
-			Console.WriteLine($"OOM in {secondsToOom:F0}s");
+			Console.WriteLine($"Extrapolate: OOM in {secondsToOom:F0}s");
 		}
 	}
 
@@ -40,7 +43,29 @@ public sealed class Worker : BackgroundService
 
 		if (secondsToThrottling < 60)
 		{
-			Console.WriteLine($"CPU throttling in {secondsToThrottling:F0}s");
+			Console.WriteLine($"Extrapolate: CPU throttling in {secondsToThrottling:F0}s");
+		}
+	}
+
+	private async Task ZScoreMemory()
+	{
+		var data = await GetPrometheusData("system_runtime_dotnet_process_memory_working_set[5m]");
+		double zScore = ZScoreAnalyzer.CalculateZScore(data);
+
+		if (zScore > 3)
+		{
+			Console.WriteLine($"ZScore: memory consumption has spiked");
+		}
+	}
+
+	private async Task ZScoreCpu()
+	{
+		var data = await GetPrometheusData("system_runtime_cpu_usage[5m]");
+		double zScore = ZScoreAnalyzer.CalculateZScore(data);
+
+		if (zScore > 3)
+		{
+			Console.WriteLine($"ZScore: CPU consumption has spiked");
 		}
 	}
 
