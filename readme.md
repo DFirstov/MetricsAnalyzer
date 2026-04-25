@@ -18,8 +18,14 @@ Metrics Analyzer — заготовка микросервисного прое�
 - `Services/Trading.Api` — HTTP API-заготовка (http://localhost:5194).
 - `Services/MarketData.Api` — HTTP API с PostgreSQL (EF Core), авто-применением миграций при старте и кэшированием в Redis (http://localhost:5117/swagger).
 - `Services/Notification.Worker` — worker-заготовка (http://localhost:5086).
+- `TrafficGenerator` — консольный генератор нагрузки на базе NBomber для `MarketData.Api`.
 
 На текущем этапе `Trading.Api` и `Notification.Worker` остаются сервисами-заготовками, а в `MarketData.Api` уже реализованы рабочие endpoints для цен акций.
+
+## Что умеет TrafficGenerator сейчас
+
+- Перед стартом нагрузки вызывает `POST /api/stocks/seed`, чтобы подготовить тестовые данные.
+- Запускает сценарий `Invest App Load`, который 50 раз в секунду выполняет запрос `GET /api/stocks/AAPL` в течение 5 минут.
 
 ## Что умеет MarketData.Api сейчас
 
@@ -52,14 +58,21 @@ docker compose --profile infra up -d
 docker compose --profile app up -d --build
 ```
 
+### 3) Запуск сценария симуляции (инфраструктура + сервисы + генератор нагрузки)
+
+```bash
+docker compose --profile simulation up -d --build
+```
+
 ## Структура проекта
 
-- `docker-compose.yml` — локальная инфраструктура и запуск сервисов в Docker через профили `infra` и `app`.
+- `docker-compose.yml` — локальная инфраструктура и запуск сервисов в Docker через профили `infra`, `app` и `simulation`.
 - `MetricsAnalyzer.slnx` — solution-файл.
 - `Services/Trading.Api` — API для домена торговых операций.
 - `Services/MarketData.Api` — API для рыночных данных (EF Core + PostgreSQL + Redis + миграции + контроллер акций).
 - `Services/Notification.Worker` — сервис фоновой обработки и уведомлений.
+- `TrafficGenerator` — консольный нагрузочный генератор на NBomber.
 
 ## Текущее состояние
 
-Проект находится на стадии каркаса: инфраструктура и сервисы подготовлены, есть контейнеризация сервисов, а в `MarketData.Api` уже реализован базовый сценарий работы с акциями (сидирование, чтение по тикеру, кэширование в Redis, авто-миграции БД). Бизнес-логика будет расширяться в следующих итерациях.
+Проект находится на стадии каркаса: инфраструктура и сервисы подготовлены, есть контейнеризация, в `MarketData.Api` реализован базовый сценарий работы с акциями (сидирование, чтение по тикеру, кэширование в Redis, авто-миграции БД), а также добавлен базовый контур нагрузочного тестирования через `TrafficGenerator`.

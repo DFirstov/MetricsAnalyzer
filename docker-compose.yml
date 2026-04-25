@@ -16,6 +16,7 @@
     profiles:
       - infra
       - app
+      - simulation
   
   cache:
     container_name: invest-cache
@@ -30,6 +31,7 @@
     profiles:
       - infra
       - app
+      - simulation
   
   queue:
     container_name: invest-queue
@@ -49,6 +51,7 @@
     profiles:
       - infra
       - app
+      - simulation
   
   queue-init:
     container_name: invest-queue-init
@@ -62,6 +65,7 @@
     profiles:
       - infra
       - app
+      - simulation
 
   market-data-api:
     image: market-data-api
@@ -78,6 +82,7 @@
         condition: service_healthy
     profiles:
       - app
+      - simulation
 
   notification-worker:
     image: notification-worker
@@ -89,6 +94,7 @@
       - "5086:8080"
     profiles:
       - app
+      - simulation
 
   trading-api:
     image: trading-api
@@ -100,3 +106,12 @@
       - "5194:8080"
     profiles:
       - app
+      - simulation
+
+  traffic-generator:
+    image: traffic-generator
+    build:
+      context: .
+      dockerfile: TrafficGenerator/Dockerfile
+    profiles:
+      - simulation
