@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Services/">
+    <Project Path="Services/MarketData.Api/MarketData.Api.csproj" />
+    <Project Path="Services/Notification.Worker/Notification.Worker.csproj" />
+    <Project Path="Services/Trading.Api/Trading.Api.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".dockerignore" />
     <File Path=".gitignore" />

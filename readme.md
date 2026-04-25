@@ -1,13 +1,25 @@
 # Metrics Analyzer
 
-Metrics Analyzer — заготовка проекта для анализа метрик с целью предсказания аварийных ситуаций в микросервисной системе. Сейчас репозиторий содержит базовую инфраструктуру для локальной разработки: базу данных, кэш и очередь сообщений.
+Metrics Analyzer — заготовка микросервисного проекта для анализа метрик и предсказания аварийных ситуаций.
+
+Сейчас в репозитории есть локальная инфраструктура и стартовые .NET-сервисы.
 
 ## Что уже настроено
 
-- **PostgreSQL** — основное хранилище данных.
-- **Valkey** — in-memory кэш.
-- **Kafka** — брокер сообщений для событийного обмена.
-- **Инициализация Kafka-топика** — при запуске создаётся топик `trade-events` (если его ещё нет).
+### Инфраструктура
+
+- **PostgreSQL** — основное хранилище данных (`localhost:5432`).
+- **Valkey** — in-memory кэш (`localhost:6379`).
+- **Kafka** — брокер сообщений (`localhost:9092`).
+- **Инициализация Kafka-топика** — при старте поднимается `trade-events` (если его ещё нет).
+
+### Сервисы
+
+- `Services/Trading.Api` — HTTP API-заготовка (http://localhost:5194).
+- `Services/MarketData.Api` — HTTP API-заготовка (http://localhost:5117).
+- `Services/Notification.Worker` — worker-заготовка (http://localhost:5086).
+
+На текущем этапе все сервисы содержат минимальный endpoint `GET /` с ответом `Hello World!`.
 
 ## Быстрый старт
 
@@ -15,24 +27,32 @@ Metrics Analyzer — заготовка проекта для анализа м�
 
 - Docker
 - Docker Compose
+- .NET SDK 10.0+
 
-### Запуск
+### 1) Запуск инфраструктуры
 
 ```bash
 docker-compose up -d
 ```
 
-После запуска будут доступны сервисы:
+### 2) Запуск сервисов
 
-- PostgreSQL: `localhost:5432`
-- Valkey: `localhost:6379`
-- Kafka: `localhost:9092`
+Из корня репозитория:
 
-## Структура на текущий момент
+```bash
+dotnet run --project Services/Trading.Api
+dotnet run --project Services/MarketData.Api
+dotnet run --project Services/Notification.Worker
+```
 
-- `docker-compose.yml` — описание локальной инфраструктуры.
-- `MetricsAnalyzer.slnx` — solution-файл для дальнейшей разработки приложения.
+## Структура проекта
 
-## Текущее состояние проекта
+- `docker-compose.yml` — локальная инфраструктура (PostgreSQL, Valkey, Kafka).
+- `MetricsAnalyzer.slnx` — solution-файл.
+- `Services/Trading.Api` — API для домена торговых операций.
+- `Services/MarketData.Api` — API для рыночных данных.
+- `Services/Notification.Worker` — сервис фоновой обработки и уведомлений.
 
-На данном этапе это инфраструктурный фундамент. Бизнес-логика и прикладные сервисы будут добавляться в следующих итерациях.
+## Текущее состояние
+
+Проект находится на стадии каркаса: инфраструктура и сервисы подготовлены, бизнес-логика будет добавляться в следующих итерациях.
