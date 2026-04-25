@@ -1,0 +1,42 @@
+﻿services:
+  db:
+    container_name: invest-db
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: invest-db
+    ports:
+      - "5432:5432"
+  
+  cache:
+    container_name: invest-cache
+    image: valkey/valkey:9-alpine
+    ports:
+      - "6379:6379"
+  
+  queue:
+    container_name: invest-queue
+    image: public.ecr.aws/bitnami/kafka:3.7
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+    ports:
+      - "9092:9092"
+  
+  queue-init:
+    container_name: invest-queue-init
+    image: public.ecr.aws/bitnami/kafka:3.7
+    depends_on:
+      - queue
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: |
+      /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
+      /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic trade-events --partitions 3 --replication-factor 1
