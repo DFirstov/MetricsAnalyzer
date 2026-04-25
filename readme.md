@@ -18,6 +18,10 @@ Metrics Analyzer — заготовка микросервисного прое�
 - `Services/Trading.Api` — HTTP API-заготовка (http://localhost:5194).
 - `Services/MarketData.Api` — HTTP API-заготовка (http://localhost:5117).
 - `Services/Notification.Worker` — worker-заготовка (http://localhost:5086).
+- Для каждого сервиса добавлен Dockerfile:
+  - `Services/Trading.Api/Dockerfile`
+  - `Services/MarketData.Api/Dockerfile`
+  - `Services/Notification.Worker/Dockerfile`
 
 На текущем этапе все сервисы содержат минимальный endpoint `GET /` с ответом `Hello World!`.
 
@@ -29,25 +33,21 @@ Metrics Analyzer — заготовка микросервисного прое�
 - Docker Compose
 - .NET SDK 10.0+
 
-### 1) Запуск инфраструктуры
+### 1) Запуск только инфраструктуры
 
 ```bash
-docker-compose up -d
+docker compose --profile infra up -d
 ```
 
-### 2) Запуск сервисов
-
-Из корня репозитория:
+### 2) Запуск инфраструктуры и сервисов в Docker
 
 ```bash
-dotnet run --project Services/Trading.Api
-dotnet run --project Services/MarketData.Api
-dotnet run --project Services/Notification.Worker
+docker compose --profile app up -d --build
 ```
 
 ## Структура проекта
 
-- `docker-compose.yml` — локальная инфраструктура (PostgreSQL, Valkey, Kafka).
+- `docker-compose.yml` — локальная инфраструктура и запуск сервисов в Docker через профили `infra` и `app`.
 - `MetricsAnalyzer.slnx` — solution-файл.
 - `Services/Trading.Api` — API для домена торговых операций.
 - `Services/MarketData.Api` — API для рыночных данных.
@@ -55,4 +55,4 @@ dotnet run --project Services/Notification.Worker
 
 ## Текущее состояние
 
-Проект находится на стадии каркаса: инфраструктура и сервисы подготовлены, бизнес-логика будет добавляться в следующих итерациях.
+Проект находится на стадии каркаса: инфраструктура и сервисы подготовлены, есть контейнеризация сервисов, бизнес-логика будет добавляться в следующих итерациях.

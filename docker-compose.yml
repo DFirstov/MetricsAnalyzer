@@ -8,12 +8,18 @@
       POSTGRES_DB: invest-db
     ports:
       - "5432:5432"
+    profiles:
+      - infra
+      - app
   
   cache:
     container_name: invest-cache
     image: valkey/valkey:9-alpine
     ports:
       - "6379:6379"
+    profiles:
+      - infra
+      - app
   
   queue:
     container_name: invest-queue
@@ -30,6 +36,9 @@
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
     ports:
       - "9092:9092"
+    profiles:
+      - infra
+      - app
   
   queue-init:
     container_name: invest-queue-init
@@ -40,3 +49,30 @@
     command: |
       /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
       /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic trade-events --partitions 3 --replication-factor 1
+    profiles:
+      - infra
+      - app
+
+  marketdata.api:
+    image: marketdata.api
+    build:
+      context: .
+      dockerfile: Services/MarketData.Api/Dockerfile
+    profiles:
+      - app
+
+  notification.worker:
+    image: notification.worker
+    build:
+      context: .
+      dockerfile: Services/Notification.Worker/Dockerfile
+    profiles:
+      - app
+
+  trading.api:
+    image: trading.api
+    build:
+      context: .
+      dockerfile: Services/Trading.Api/Dockerfile
+    profiles:
+      - app
