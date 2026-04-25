@@ -6,6 +6,11 @@
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: invest-db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d invest_data" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"
     profiles:
@@ -15,6 +20,11 @@
   cache:
     container_name: invest-cache
     image: valkey/valkey:9-alpine
+    healthcheck:
+      test: [ "CMD", "valkey-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     ports:
       - "6379:6379"
     profiles:
@@ -53,26 +63,40 @@
       - infra
       - app
 
-  marketdata.api:
-    image: marketdata.api
+  market-data-api:
+    image: market-data-api
+    container_name: invest-market-data-api
     build:
       context: .
       dockerfile: Services/MarketData.Api/Dockerfile
+    ports:
+      - "5117:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
     profiles:
       - app
 
-  notification.worker:
-    image: notification.worker
+  notification-worker:
+    image: notification-worker
+    container_name: invest-notification-worker
     build:
       context: .
       dockerfile: Services/Notification.Worker/Dockerfile
+    ports:
+      - "5086:8080"
     profiles:
       - app
 
-  trading.api:
-    image: trading.api
+  trading-api:
+    image: trading-api
+    container_name: invest-trading-api
     build:
       context: .
       dockerfile: Services/Trading.Api/Dockerfile
+    ports:
+      - "5194:8080"
     profiles:
       - app
