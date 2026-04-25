@@ -55,29 +55,32 @@ public sealed class StocksController(MarketDbContext db, IConnectionMultiplexer 
 	}
 
 	/// <summary>
-	/// Добавление некоторых данных для примера (сидирование).
+	/// Полностью пересоздаёт тестовый набор акций в таблице.
 	/// </summary>
-	/// <returns>200 OK — если сидирование успешно; 400 Bad Request — если сидирование уже было сделано.</returns>
-	[HttpPost("seed")]
-	public async Task<IActionResult> Seed()
+	/// <param name="count">Количество записей, которое нужно сгенерировать.</param>
+	/// <returns>200 OK, если данные успешно перезаписаны.</returns>
+	[HttpPost("seed/{count:int}")]
+	public async Task<IActionResult> Seed(int count)
 	{
-		// Чтобы избежать дублей, запрещаем повторное сидирование,
-		// если в таблице уже есть хотя бы одна запись.
-		if (await db.Stocks.AnyAsync())
-		{
-			return BadRequest("Already seeded");
-		}
+		// Полностью очищаем таблицу и заново наполняем её синтетическими тикерами TKR0000001...TKRxxxxxxx.
+		await db.Database.ExecuteSqlAsync(
+			$"""
+			 truncate "Stocks"; 			
 
-		// Добавляем стартовые данные для локальной разработки и быстрой проверки API.
-		db.Stocks.AddRange(
-			new Stock {Ticker = "AAPL", Price = 150.25m, LastUpdated = DateTime.UtcNow},
-			new Stock {Ticker = "MSFT", Price = 300.50m, LastUpdated = DateTime.UtcNow},
-			new Stock {Ticker = "GOOGL", Price = 2800.10m, LastUpdated = DateTime.UtcNow}
-		);
+			 insert into "Stocks"
+			 (
+			  	 "Ticker",
+			  	 "Price",
+			  	 "LastUpdated"
+			 )
+			 select
+			     'TKR' || lpad(s.id::text, 7, '0'),
+			     (random() * 1000)::numeric(18, 2),
+			 	 now()
+			 from generate_series(1, {count}) as s(id);
+			 """);
 
-		await db.SaveChangesAsync();
-
-		// Возвращаем простой статус, что данные успешно добавлены.
+		// Возвращаем простой статус, чтобы генератор нагрузки мог проверить успешную подготовку данных.
 		return Ok("Seeded");
 	}
 }
